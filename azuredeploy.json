@@ -81,6 +81,19 @@
                     "description": "Availability Zone number for F5 Big-IP Member 2. Big-IP members should be placed in different zones. This setting is not relevant if you selected Availability Set option above."
                 }
             },
+            "AzureAvailabilityZoneForBigIpMember3": {
+                "type": "string",
+                "allowedValues": [
+                    "",
+                    "1",
+                    "2",
+                    "3"
+                ],
+                "defaultValue": "3",
+                "metadata": {
+                    "description": "Availability Zone number for F5 Big-IP Member 3. Big-IP members should be placed in different zones. This setting is not relevant if you selected Availability Set option above."
+                }
+            },
             "AzureAvailabilityZoneForPublicIpAddresses": {
                 "type": "string",
                 "allowedValues": [
@@ -97,10 +110,11 @@
         "BIGIPAvailabilityType": {
                 "allowedValues": [
                     "StandAlone", 
-                    "Cluster",
+                    "2_members_Cluster",
+                    "3_members_Cluster",
                     "Autoscale"
                 ], 
-                "defaultValue": "Cluster", 
+                "defaultValue": "2_members_Cluster", 
                 "metadata": {
                     "description": "Type of BIG-IP deployment you want to setup"
                             }, 
@@ -121,8 +135,8 @@
         "BIGIPModulesToInstall": {
             "allowedValues": [
                 "LTM", 
-                "ASM",
-                "LTM+ASM"
+                "AWAF",
+                "LTM+AWAF"
             ], 
             "defaultValue": "LTM", 
             "metadata": {
@@ -131,21 +145,8 @@
             "type": "string"
             },
 
-        "consumptionModel": {
-            "type": "string",
-            "allowedValues": [
-                "PAYG",
-                "BYOL",
-                "BIG-IQ"
-            ],
-            "defaultValue": "BYOL", 
-            "metadata": {
-                "description": "Select your consumption model between Pay-As-You-Go, Bring-Your-Own-License and Big-IQ"
-            }
-        },
-
-        "adminUsername": {
-            "defaultValue": "azureuser", 
+       "adminUsername": {
+            "defaultValue": "admin-admin", 
             "metadata": {
                 "description": "User name for the Virtual Machine."
             }, 
@@ -235,14 +236,32 @@
             }, 
             "type": "string"
         }, 
-        "imageName": {
-            "allowedValues": [
-                "LTMTwoBootLocations",  
-                "AllTwoBootLocations"
+        "consumptionModelAndImageName": {
+            "allowedValues": [ 
+                "BYOL_AllTwoBootLocations",
+                "BYOL_AllOneBootLocation",
+                "BYOL_LTMTwoBootLocations",
+                "BYOL_LTMOneBootLocation",
+                "BIGIQ_AllTwoBootLocations",
+                "BIGIQ_AllOneBootLocation",
+                "BIGIQ_LTMTwoBootLocations",
+                "BIGIQ_LTMOneBootLocation",            
+                "PAYG_Best25Mbps", 
+                "PAYG_Best200Mbps", 
+                "PAYG_Best1Gbps", 
+                "PAYG_Better25Mbps", 
+                "PAYG_Better200Mbps", 
+                "PAYG_Better1Gbps", 
+                "PAYG_Good25Mbps", 
+                "PAYG_Good200Mbps", 
+                "PAYG_Good1Gbps", 
+                "PAYG_AdvancedWaf25Mbps", 
+                "PAYG_AdvancedWaf200Mbps", 
+                "PAYG_AdvancedWaf1Gbps"
             ], 
-            "defaultValue": "AllTwoBootLocations", 
+            "defaultValue": "BYOL_AllTwoBootLocations", 
             "metadata": {
-                "description": "F5 SKU (image) to you want to deploy. Note: The disk size of the VM will be determined based on the option you select.  **Important**: If intending to provision multiple modules, ensure the appropriate value is selected, such as ****AllTwoBootLocations or AllOneBootLocation****."
+                "description": "Consumption Model and F5 SKU (image) to you want to deploy. Note: The disk size of the VM will be determined based on the option you select.  **Important**: If intending to provision multiple modules, ensure the appropriate value is selected, such as ****BYOL_AllTwoBootLocations or AllOneBootLocation****."
             }, 
             "type": "string"
         }, 
@@ -435,35 +454,88 @@
         }
     }, 
     "variables": {
-        "imageNameArray": {
-            "12.1.303000": {
-                "AllOneBootLocation": "big-all-2slot", 
-                "AllTwoBootLocations": "big-all-2slot", 
-                "LTMOneBootLocation": "big-ltm-2slot", 
-                "LTMTwoBootLocations": "big-ltm-2slot"
+        "ConsumptionImageMap": {
+            "advancedwaf1gbps": {
+                "offer": "f5-big-ip-advanced-waf", 
+                "sku": "f5-bigip-virtual-edition-1g-waf-hourly"
             }, 
-            "13.1.100000": {
-                "AllOneBootLocation": "big-all-1slot", 
-                "AllTwoBootLocations": "big-all-2slot", 
-                "LTMOneBootLocation": "big-ltm-1slot", 
-                "LTMTwoBootLocations": "big-ltm-2slot"
+            "advancedwaf200mbps": {
+                "offer": "f5-big-ip-advanced-waf", 
+                "sku": "f5-bigip-virtual-edition-200m-waf-hourly"
             }, 
-            "latest": {
-                "AllOneBootLocation": "big-all-2slot",
-                "AllTwoBootLocations": "big-all-2slot", 
-                "LTMOneBootLocation": "big-ltm-2slot", 
-                "LTMTwoBootLocations": "big-ltm-2slot"
+            "advancedwaf25mbps": {
+                "offer": "f5-big-ip-advanced-waf", 
+                "sku": "f5-bigip-virtual-edition-25m-waf-hourly"
             }, 
-            "offerPostfix": {
-                "big-all-1slot": "byol", 
-                "big-all-2slot": "byol", 
-                "big-ltm-1slot": "byol", 
-                "big-ltm-2slot": "byol", 
-                "bigip-virtual-edition-best": "best", 
-                "bigip-virtual-edition-good": "good"
+            "best1gbps": {
+                "offer": "f5-big-ip-best", 
+                "sku": "f5-bigip-virtual-edition-1g-best-hourly"
+            }, 
+            "best200mbps": {
+                "offer": "f5-big-ip-best", 
+                "sku": "f5-bigip-virtual-edition-200m-best-hourly"
+            }, 
+            "best25mbps": {
+                "offer": "f5-big-ip-best", 
+                "sku": "f5-bigip-virtual-edition-25m-best-hourly"
+            }, 
+            "better1gbps": {
+                "offer": "f5-big-ip-better", 
+                "sku": "f5-bigip-virtual-edition-1g-better-hourly"
+            }, 
+            "better200mbps": {
+                "offer": "f5-big-ip-better", 
+                "sku": "f5-bigip-virtual-edition-200m-better-hourly"
+            }, 
+            "better25mbps": {
+                "offer": "f5-big-ip-better", 
+                "sku": "f5-bigip-virtual-edition-25m-better-hourly"
+            }, 
+            "good1gbps": {
+                "offer": "f5-big-ip-good", 
+                "sku": "f5-bigip-virtual-edition-1g-good-hourly"
+            }, 
+            "good200mbps": {
+                "offer": "f5-big-ip-good", 
+                "sku": "f5-bigip-virtual-edition-200m-good-hourly"
+            }, 
+            "good25mbps": {
+                "offer": "f5-big-ip-good", 
+                "sku": "f5-bigip-virtual-edition-25m-good-hourly"
+            }, 
+            "perappveadvancedwaf200mbps": {
+                "offer": "f5-big-ip-per-app-ve", 
+                "sku": "f5-big-ip-per-app-ve-awf-200m-hourly"
+            }, 
+            "perappveadvancedwaf25mbps": {
+                "offer": "f5-big-ip-per-app-ve", 
+                "sku": "f5-big-ip-per-app-ve-awf-25m-hourly"
+            }, 
+            "perappveltm200mbps": {
+                "offer": "f5-big-ip-per-app-ve", 
+                "sku": "f5-big-ip-per-app-ve-ltm-200m-hourly"
+            }, 
+            "perappveltm25mbps": {
+                "offer": "f5-big-ip-per-app-ve", 
+                "sku": "f5-big-ip-per-app-ve-ltm-25m-hourly"
+            },
+            "alltwobootlocations": {
+                "offer": "f5-big-ip-byol", 
+                "sku": "f5-big-all-2slot-byol"
+            },
+            "ltmtwobootlocations": {
+                "offer": "f5-big-ip-byol", 
+                "sku": "f5-big-ltm-2slot-byol"
+            },
+            "allonebootlocation": {
+                "offer": "f5-big-ip-byol", 
+                "sku": "f5-big-all-1slot-byol"
+            },
+            "ltmonebootlocations": {
+                "offer": "f5-big-ip-byol", 
+                "sku": "f5-big-ltm-1slot-byol"
             }
-        }, 
-        "imageNameSub": "[variables('imageNameArray')[parameters('bigIpVersion')][parameters('imageName')]]", 
+        },    
         "bigIpNicPortMap": {
             "1": {
                 "Port": "[parameters('bigIpVersion')]"
@@ -527,9 +599,11 @@
         "verifyHash": "[concat(variables('singleQuote'), 'cli script /Common/verifyHash {\nproc script::run {} {\n        if {[catch {\n            set hashes(f5-cloud-libs.tar.gz) 535059811324dbda9783df2c4f7ac8405acf6f198efd5696bc0d90f4f8f645b77c04efd42c3dc94261f0b92d76cbae87613412531968a5e646baf4177807b953\n            set hashes(f5-cloud-libs-aws.tar.gz) 076c969cbfff12efacce0879820262b7787c98645f1105667cc4927d4acfe2466ed64c777b6d35957f6df7ae266937dde42fef4c8b1f870020a366f7f910ffb5\n            set hashes(f5-cloud-libs-azure.tar.gz) eea34eb9bf1fc86702cc8d3adcd0cd4cd3e8ede0bad5d85ce55b7248aeb5726583b0314bd1ac9383dbfbf97c79d08d27a473539844de6972c9f6f5fea1a7b9aa\n            set hashes(f5-cloud-libs-gce.tar.gz) 605c13c0725dcf6ee96d24349aee68be59640c58fef16d42d69fe1b01fb2e59df14f2cd41f0718d21061b8fb52cdce57fcf6541ebc8610e54e0f7fe8e46d94cb\n            set hashes(f5-cloud-libs-openstack.tar.gz) 5c83fe6a93a6fceb5a2e8437b5ed8cc9faf4c1621bfc9e6a0779f6c2137b45eab8ae0e7ed745c8cf821b9371245ca29749ca0b7e5663949d77496b8728f4b0f9\n            set hashes(asm-policy-linux.tar.gz) 63b5c2a51ca09c43bd89af3773bbab87c71a6e7f6ad9410b229b4e0a1c483d46f1a9fff39d9944041b02ee9260724027414de592e99f4c2475415323e18a72e0\n            set hashes(f5.http.v1.2.0rc4.tmpl) 47c19a83ebfc7bd1e9e9c35f3424945ef8694aa437eedd17b6a387788d4db1396fefe445199b497064d76967b0d50238154190ca0bd73941298fc257df4dc034\n            set hashes(f5.http.v1.2.0rc6.tmpl) 811b14bffaab5ed0365f0106bb5ce5e4ec22385655ea3ac04de2a39bd9944f51e3714619dae7ca43662c956b5212228858f0592672a2579d4a87769186e2cbfe\n            set hashes(f5.http.v1.2.0rc7.tmpl) 21f413342e9a7a281a0f0e1301e745aa86af21a697d2e6fdc21dd279734936631e92f34bf1c2d2504c201f56ccd75c5c13baa2fe7653213689ec3c9e27dff77d\n            set hashes(f5.aws_advanced_ha.v1.3.0rc1.tmpl) 9e55149c010c1d395abdae3c3d2cb83ec13d31ed39424695e88680cf3ed5a013d626b326711d3d40ef2df46b72d414b4cb8e4f445ea0738dcbd25c4c843ac39d\n            set hashes(f5.aws_advanced_ha.v1.4.0rc1.tmpl) de068455257412a949f1eadccaee8506347e04fd69bfb645001b76f200127668e4a06be2bbb94e10fefc215cfc3665b07945e6d733cbe1a4fa1b88e881590396\n            set hashes(f5.aws_advanced_ha.v1.4.0rc2.tmpl) 6ab0bffc426df7d31913f9a474b1a07860435e366b07d77b32064acfb2952c1f207beaed77013a15e44d80d74f3253e7cf9fbbe12a90ec7128de6facd097d68f\n            set hashes(f5.aws_advanced_ha.v1.4.0rc3.tmpl) 2f2339b4bc3a23c9cfd42aae2a6de39ba0658366f25985de2ea53410a745f0f18eedc491b20f4a8dba8db48970096e2efdca7b8efffa1a83a78e5aadf218b134\n            set hashes(asm-policy.tar.gz) 2d39ec60d006d05d8a1567a1d8aae722419e8b062ad77d6d9a31652971e5e67bc4043d81671ba2a8b12dd229ea46d205144f75374ed4cae58cefa8f9ab6533e6\n            set hashes(deploy_waf.sh) 1a3a3c6274ab08a7dc2cb73aedc8d2b2a23cd9e0eb06a2e1534b3632f250f1d897056f219d5b35d3eed1207026e89989f754840fd92969c515ae4d829214fb74\n            set hashes(f5.policy_creator.tmpl) 06539e08d115efafe55aa507ecb4e443e83bdb1f5825a9514954ef6ca56d240ed00c7b5d67bd8f67b815ee9dd46451984701d058c89dae2434c89715d375a620\n            set hashes(f5.service_discovery.tmpl) 0c43a28d58ff8339891ef324763675c29275170f8984d39298a53f570385eef82bef6d5a273adebb5310fc529faffc9b225358ec8f65100115246915eff706fe\n            set hashes(f5.cloud_logger.v1.0.0.tmpl) 64a0ed3b5e32a037ba4e71d460385fe8b5e1aecc27dc0e8514b511863952e419a89f4a2a43326abb543bba9bc34376afa114ceda950d2c3bd08dab735ff5ad20\n            set hashes(f5-appsvcs-3.5.1-5.noarch.rpm) ba71c6e1c52d0c7077cdb25a58709b8fb7c37b34418a8338bbf67668339676d208c1a4fef4e5470c152aac84020b4ccb8074ce387de24be339711256c0fa78c8\n\n            set file_path [lindex $tmsh::argv 1]\n            set file_name [file tail $file_path]\n\n            if {![info exists hashes($file_name)]} {\n                tmsh::log err \"No hash found for $file_name\"\n                exit 1\n            }\n\n            set expected_hash $hashes($file_name)\n            set computed_hash [lindex [exec /usr/bin/openssl dgst -r -sha512 $file_path] 0]\n            if { $expected_hash eq $computed_hash } {\n                exit 0\n            }\n            tmsh::log err \"Hash does not match for $file_path\"\n            exit 1\n        }]} {\n            tmsh::log err {Unexpected error in verifyHash}\n            exit 1\n        }\n    }\n    script-signature hCr5O6FtvOkjRk8Vn1499YU57spPEMbLXCfkgLVsVcmBCXnHbRw6zTIZOJlGkwk7CyCTpcuVuTR1SiGsQKnclgcQFkEDP5rw98jyIwvKpfYXiLxPI2SPsyadom41FDPXy9+b4aOAJGRPcp5/HhRP7+ky7x6jI5SEF4ZFExN6BwWXn61D+MwYe2Ajhes/6wuZv+b9i9teckZLkyB54OAbEyEug3S66YK2Jg916Y5JLNhDn7JNoOPoyFvYlyuDOutcjFHiwjdSFEgcOx/dka/5aHtjKEiMWuCsuaZnhGKSHc/ZCTH8oht1qUi28Dz5W2Gq6hRE9Zt5S4HmS3JKu2wlfg==\n    signing-key /Common/f5-irule\n}', variables('singleQuote'))]", 
         "installCloudLibs": "[concat(variables('singleQuote'), '#!/bin/bash\necho about to execute\nchecks=0\nwhile [ $checks -lt 120 ]; do echo checking mcpd\n/usr/bin/tmsh -a show sys mcp-state field-fmt | grep -q running\nif [ $? == 0 ]; then\necho mcpd ready\nbreak\nfi\necho mcpd not ready yet\nlet checks=checks+1\nsleep 1\ndone\necho loading verifyHash script\n/usr/bin/tmsh load sys config merge file /config/verifyHash\nif [ $? != 0 ]; then\necho cannot validate signature of /config/verifyHash\nexit 1\nfi\necho loaded verifyHash\n\nconfig_loc=\"/config/cloud/\"\nhashed_file_list=\"${config_loc}f5-cloud-libs.tar.gz f5-appsvcs-3.5.1-5.noarch.rpm f5.service_discovery.tmpl f5.cloud_logger.v1.0.0.tmpl\"\nfor file in $hashed_file_list; do\necho \"verifying $file\"\n/usr/bin/tmsh run cli script verifyHash $file\nif [ $? != 0 ]; then\necho \"$file is not valid\"\nexit 1\nfi\necho \"verified $file\"\ndone\necho \"expanding $hashed_file_list\"\ntar xfz /config/cloud/f5-cloud-libs.tar.gz --warning=no-unknown-keyword -C /config/cloud/azure/node_modules/@f5devcentral\ntouch /config/cloud/cloudLibsReady', variables('singleQuote'))]", 
         "dnsLabel": "[toLower(parameters('dnsLabel'))]", 
-        "imageNameToLower": "[toLower(parameters('imageName'))]", 
-        "skuToUse": "[concat('f5-', variables('imageNameSub'),'-byol')]", 
-        "offerToUse": "[concat('f5-big-ip-', variables('imageNameArray').offerPostfix[variables('imageNameSub')])]", 
+        "splittedconsumptionModelAndImageName": "[split(parameters('consumptionModelAndImageName'),'_')]", 
+        "imageNameToLower": "[toLower(variables('splittedconsumptionModelAndImageName')[1])]", 
+        "consumptionModel": "[toLower(variables('splittedconsumptionModelAndImageName')[0])]", 
+        "skuToUse": "[variables('ConsumptionImageMap')[variables('imageNameToLower')]['sku']]", 
+        "offerToUse": "[variables('ConsumptionImageMap')[variables('imageNameToLower')]['offer']]", 
         "imagePlan": {
             "name": "[variables('skuToUse')]", 
             "product": "[variables('offerToUse')]", 
@@ -547,6 +621,7 @@
         "availabilitySetName": "[concat(variables('dnsLabel'), '-avset')]", 
         "availabilityZoneNumberForBigIpMember1": "[parameters('AzureAvailabilityZoneForBigIpMember1')]",
         "availabilityZoneNumberForBigIpMember2": "[parameters('AzureAvailabilityZoneForBigIpMember2')]",
+        "availabilityZoneNumberForBigIpMember3": "[parameters('AzureAvailabilityZoneForBigIpMember3')]",
         "availabilityZoneNumberForPublicIpAddresses": "[tolower(parameters('AzureAvailabilityZoneForPublicIpAddresses'))]",
         "AzureAvailabilityZoneRegion": "[parameters('AzureAvailabilityZoneRegion')]",
         "virtualNetworkName": "[concat(variables('dnsLabel'), '-vnet')]", 
@@ -562,7 +637,8 @@
         "mgmtSubnetId": "[concat(variables('vnetId'), '/subnets/', variables('mgmtSubnetName'))]", 
         "mgmtSubnetPrefix": "[concat(parameters('vnetAddressPrefix'), '.1.0/24')]", 
         "mgmtSubnetPrivateAddress": "[concat(parameters('vnetAddressPrefix'), '.1.4')]", 
-        "mgmtSubnetPrivateAddress1": "[concat(parameters('vnetAddressPrefix'), '.1.5')]", 
+        "mgmtSubnetPrivateAddress1": "[concat(parameters('vnetAddressPrefix'), '.1.5')]",
+        "mgmtSubnetPrivateAddress2": "[concat(parameters('vnetAddressPrefix'), '.1.6')]",
         "extSelfPublicIpAddressNamePrefix": "[concat(variables('dnsLabel'), '-self-pip')]", 
         "extSelfPublicIpAddressIdPrefix": "[resourceId('Microsoft.Network/publicIPAddresses', variables('extSelfPublicIpAddressNamePrefix'))]", 
         "extpublicIPAddressNamePrefix": "[concat(variables('dnsLabel'), '-ext-pip')]", 
@@ -573,7 +649,8 @@
         "extSubnetPrefix": "[concat(parameters('vnetAddressPrefix'), '.2.0/24')]", 
         "extSubnetId": "[concat(variables('vnetId'), '/subnets/', variables('extsubnetName'))]", 
         "extSubnetPrivateAddress": "[concat(parameters('vnetAddressPrefix'), '.2.4')]", 
-        "extSubnetPrivateAddress1": "[concat(parameters('vnetAddressPrefix'), '.2.5')]", 
+        "extSubnetPrivateAddress1": "[concat(parameters('vnetAddressPrefix'), '.2.5')]",
+        "extSubnetPrivateAddress2": "[concat(parameters('vnetAddressPrefix'), '.2.6')]",
         "extSubnetPrivateAddressPrefix": "[concat(parameters('vnetAddressPrefix'), '.2.')]", 
         "intNicName": "[concat(variables('dnsLabel'), '-int')]", 
         "intSubnetName": "internal", 
@@ -583,6 +660,8 @@
         "intSubnetPrivateAddress1": "[concat(parameters('vnetAddressPrefix'), '.3.5')]", 
         "intSubnetPrivateAddress2": "[concat(parameters('vnetAddressPrefix'), '.3.10')]", 
         "intSubnetPrivateAddress3": "[concat(parameters('vnetAddressPrefix'), '.3.11')]", 
+        "intSubnetPrivateAddress4": "[concat(parameters('vnetAddressPrefix'), '.3.12')]", 
+        "intSubnetPrivateAddress5": "[concat(parameters('vnetAddressPrefix'), '.3.13')]",
         "internalLoadBalancerAddress": "[concat(parameters('vnetAddressPrefix'), '.3.50')]", 
         "numberOfExternalIps": "[parameters('numberOfExternalIps')]", 
         "mgmtRouteGw": "[concat(parameters('vnetAddressPrefix'), '.1.1')]", 
@@ -625,7 +704,7 @@
             }, 
             "Yes": {
                 "hashCmd": "[concat('custId=`echo \"', variables('subscriptionId'), '\"|sha512sum|cut -d \" \" -f 1`; deployId=`echo \"', variables('deploymentId'), '\"|sha512sum|cut -d \" \" -f 1`')]", 
-                "metricsCmd": "[concat(' --metrics customerId:${custId},deploymentId:${deployId},templateName:failover-lb_3nic-new-stack-supported,templateVersion:6.0.0.0,region:', variables('location'), ',bigIpVersion:', parameters('bigIpVersion') ,',licenseType:', parameters('consumptionModel'), ',cloudLibsVersion:', variables('f5CloudLibsTag'), ',cloudName:azure')]"
+                "metricsCmd": "[concat(' --metrics customerId:${custId},deploymentId:${deployId},templateName:failover-lb_3nic-new-stack-supported,templateVersion:6.0.0.0,region:', variables('location'), ',bigIpVersion:', parameters('bigIpVersion') ,',licenseType:', variables('consumptionModel'), ',cloudLibsVersion:', variables('f5CloudLibsTag'), ',cloudName:azure')]"
             }
         }, 
         "customImage": "[replace(parameters('customImage'), 'OPTIONAL', '')]", 
@@ -785,7 +864,44 @@
             }, 
             "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
             "type": "Microsoft.Network/publicIPAddresses"
+        },
+        {
+            "condition": "[and(equals(parameters('AzureAvailabilityOptions'), 'Availability Zone'), not(equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant')))]",
+            "apiVersion": "[variables('networkApiVersion')]", 
+            "location": "[variables('location')]",
+            "zones": ["[variables('availabilityZoneNumberForPublicIpAddresses')]"],
+            "sku": {
+                "name": "Standard"
+            },
+            "name": "[concat(variables('mgmtPublicIPAddressName'), concat('-az',variables('availabilityZoneNumberForPublicIpAddresses')), 2)]", 
+            "properties": {
+                "dnsSettings": {
+                    "domainNameLabel": "[concat(variables('dnsLabel'), variables('availabilityZoneNumberForPublicIpAddresses'), '-2')]"
+                }, 
+                "idleTimeoutInMinutes": 30, 
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
+            }, 
+            "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
+            "type": "Microsoft.Network/publicIPAddresses"
         }, 
+        {
+            "condition": "[or(equals(parameters('AzureAvailabilityOptions'), 'Availability Set'), equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant'))]",
+            "apiVersion": "[variables('networkApiVersion')]", 
+            "location": "[variables('location')]", 
+            "sku": {
+                "name": "[if(equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant'), 'Standard', 'Basic')]"
+            },
+            "name": "[concat(variables('mgmtPublicIPAddressName'), 2)]", 
+            "properties": {
+                "dnsSettings": {
+                    "domainNameLabel": "[concat(variables('dnsLabel'), '-2')]"
+                }, 
+                "idleTimeoutInMinutes": 30, 
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
+            }, 
+            "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
+            "type": "Microsoft.Network/publicIPAddresses"
+        },
         {
             "condition": "[and(equals(parameters('AzureAvailabilityOptions'), 'Availability Zone'), not(equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant')))]",
             "apiVersion": "[variables('networkApiVersion')]", 
@@ -846,6 +962,36 @@
             "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
             "type": "Microsoft.Network/publicIPAddresses"
         }, 
+        {
+            "condition": "[and(equals(parameters('AzureAvailabilityOptions'), 'Availability Zone'), not(equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant')))]",
+            "apiVersion": "[variables('networkApiVersion')]", 
+            "location": "[variables('location')]",
+            "zones": ["[variables('availabilityZoneNumberForPublicIpAddresses')]"],
+            "sku": {
+                "name": "Standard"
+            },
+            "name": "[concat(variables('extSelfPublicIpAddressNamePrefix'),concat('-az',variables('availabilityZoneNumberForPublicIpAddresses')), '2')]", 
+            "properties": {
+                "idleTimeoutInMinutes": 30, 
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
+            }, 
+            "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
+            "type": "Microsoft.Network/publicIPAddresses"
+        },
+        { 
+            "condition": "[or(equals(parameters('AzureAvailabilityOptions'), 'Availability Set'), equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant'))]",
+            "apiVersion": "[variables('networkApiVersion')]", 
+            "location": "[variables('location')]", 
+            "sku": {
+                "name": "[if(equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant'), 'Standard', 'Basic')]"            },
+            "name": "[concat(variables('extSelfPublicIpAddressNamePrefix'), '2')]", 
+            "properties": {
+                "idleTimeoutInMinutes": 30, 
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
+            }, 
+            "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
+            "type": "Microsoft.Network/publicIPAddresses"
+        },
         {
             "condition": "[and(and(equals(parameters('AzureAvailabilityOptions'), 'Availability Zone'), not(equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant'))), not(equals(variables('numberOfExternalIps'),0)))]",
             "apiVersion": "[variables('networkApiVersion')]", 
@@ -993,6 +1139,38 @@
             "apiVersion": "[variables('networkApiVersion')]", 
             "dependsOn": [
                 "[variables('vnetId')]", 
+                "[variables('mgmtNsgID')]", 
+                "[if(or(equals(parameters('AzureAvailabilityOptions'), 'Availability Set'), equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant')), concat('Microsoft.Network/publicIPAddresses/', variables('mgmtPublicIPAddressName'), '2'), concat('Microsoft.Network/publicIPAddresses/', variables('mgmtPublicIPAddressName'), '-az',variables('availabilityZoneNumberForPublicIpAddresses'), '2'))]"
+            ], 
+            "location": "[variables('location')]",
+            "name": "[concat(variables('mgmtNicName'), '2')]", 
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "[concat(variables('dnsLabel'), '-mgmt-ipconfig')]", 
+                        "properties": {
+                            "PublicIpAddress": {
+                                "Id": "[if(or(equals(parameters('AzureAvailabilityOptions'), 'Availability Set'), equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant')), resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('mgmtPublicIPAddressName'), '2')), resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('mgmtPublicIPAddressName'), '-az', variables('availabilityZoneNumberForPublicIpAddresses'), '2')))]"
+                            }, 
+                            "privateIPAddress": "[variables('mgmtSubnetPrivateAddress2')]", 
+                            "privateIPAllocationMethod": "Static", 
+                            "subnet": {
+                                "id": "[variables('mgmtSubnetId')]"
+                            }
+                        }
+                    }
+                ], 
+                "networkSecurityGroup": {
+                    "id": "[variables('mgmtNsgId')]"
+                }
+            }, 
+            "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
+            "type": "Microsoft.Network/networkInterfaces"
+        },
+        {
+            "apiVersion": "[variables('networkApiVersion')]", 
+            "dependsOn": [
+                "[variables('vnetId')]", 
                 "[variables('extNsgID')]", 
                 "extpipcopy", 
                 "[if(or(equals(parameters('AzureAvailabilityOptions'), 'Availability Set'), equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant')), concat('Microsoft.Network/publicIPAddresses/', variables('extSelfPublicIpAddressNamePrefix'), '0'), concat('Microsoft.Network/publicIPAddresses/', variables('extSelfPublicIpAddressNamePrefix'), '-az', variables('availabilityZoneNumberForPublicIpAddresses'), '0'))]", 
@@ -1089,6 +1267,53 @@
                 "[variables('vnetId')]", 
                 "[variables('extNsgID')]", 
                 "extpipcopy", 
+                "[if(or(equals(parameters('AzureAvailabilityOptions'), 'Availability Set'), equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant')), concat('Microsoft.Network/publicIPAddresses/', variables('extSelfPublicIpAddressNamePrefix'), '2'), concat('Microsoft.Network/publicIPAddresses/', variables('extSelfPublicIpAddressNamePrefix'), '-az', variables('availabilityZoneNumberForPublicIpAddresses'), '2'))]", 
+                "[if(or(equals(parameters('AzureAvailabilityOptions'), 'Availability Set'), equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant')), variables('extLbId'), concat(variables('extLbId'), '-az', variables('availabilityZoneNumberForPublicIpAddresses')))]"
+            ], 
+            "location": "[variables('location')]",
+            "name": "[concat(variables('extNicName'), '2')]", 
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "[concat(variables('instanceName'), '-self-ipconfig')]", 
+                        "properties": {
+                            "PublicIpAddress": {
+                                "Id": "[if(or(equals(parameters('AzureAvailabilityOptions'), 'Availability Set'), equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant')), concat(variables('extSelfPublicIpAddressIdPrefix'), '2'), concat(variables('extSelfPublicIpAddressIdPrefix'), '-az', variables('availabilityZoneNumberForPublicIpAddresses'), '2'))]"
+                            }, 
+                            "primary": true, 
+                            "privateIPAddress": "[variables('extSubnetPrivateAddress2')]", 
+                            "privateIPAllocationMethod": "Static", 
+                            "subnet": {
+                                "id": "[variables('extSubnetId')]"
+                            }
+                        }
+                    }, 
+                    {
+                        "name": "[concat(variables('resourceGroupName'), '-ext-ipconfig2')]", 
+                        "properties": {
+                            "loadBalancerBackendAddressPools": "[if(equals(variables('numberOfExternalIps'), 0), take(variables('backEndAddressPoolArray'), 0), take(variables('backEndAddressPoolArray'), 1))]", 
+                            "primary": false, 
+                            "privateIPAddress": "[concat(variables('extSubnetPrivateAddressPrefix'), 12)]", 
+                            "privateIPAllocationMethod": "Static", 
+                            "subnet": {
+                                "id": "[variables('extSubnetId')]"
+                            }
+                        }
+                    }
+                ], 
+                "networkSecurityGroup": {
+                    "id": "[concat(variables('extNsgId'))]"
+                }
+            }, 
+            "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
+            "type": "Microsoft.Network/networkInterfaces"
+        },
+        {
+            "apiVersion": "[variables('networkApiVersion')]", 
+            "dependsOn": [
+                "[variables('vnetId')]", 
+                "[variables('extNsgID')]", 
+                "extpipcopy", 
                 "[if(or(equals(parameters('AzureAvailabilityOptions'), 'Availability Set'), equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant')), concat('Microsoft.Network/publicIPAddresses/', variables('extSelfPublicIpAddressNamePrefix'), '0'), concat('Microsoft.Network/publicIPAddresses/', variables('extSelfPublicIpAddressNamePrefix'), '-az', variables('availabilityZoneNumberForPublicIpAddresses'), '0'))]", 
                 "[if(or(equals(parameters('AzureAvailabilityOptions'), 'Availability Set'), equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant')), variables('intLbId'), concat(variables('intLbId'), '-az', variables('availabilityZoneNumberForPublicIpAddresses')))]"
             ], 
@@ -1167,6 +1392,48 @@
             "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
             "type": "Microsoft.Network/networkInterfaces"
         }, 
+        {
+            "apiVersion": "[variables('networkApiVersion')]", 
+            "dependsOn": [
+                "[variables('vnetId')]", 
+                "[variables('extNsgID')]", 
+                "extpipcopy", 
+                "[if(or(equals(parameters('AzureAvailabilityOptions'), 'Availability Set'), equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant')), concat('Microsoft.Network/publicIPAddresses/', variables('extSelfPublicIpAddressNamePrefix'), '2'), concat('Microsoft.Network/publicIPAddresses/', variables('extSelfPublicIpAddressNamePrefix'), '-az', variables('availabilityZoneNumberForPublicIpAddresses'), '2'))]", 
+                "[if(or(equals(parameters('AzureAvailabilityOptions'), 'Availability Set'), equals(variables('availabilityZoneNumberForPublicIpAddresses'), 'zoneredundant')), variables('intLbId'), concat(variables('intLbId'), '-az', variables('availabilityZoneNumberForPublicIpAddresses')))]"
+            ], 
+            "location": "[variables('location')]",
+            "name": "[concat(variables('intNicName'), '2')]", 
+            "properties": {
+                "enableIPForwarding": true, 
+                "ipConfigurations": [
+                    {
+                        "name": "[concat(variables('dnsLabel'), '-int-ipconfig')]", 
+                        "properties": {
+                            "primary": true, 
+                            "privateIPAddress": "[variables('intSubnetPrivateAddress4')]", 
+                            "privateIPAllocationMethod": "Static", 
+                            "subnet": {
+                                "id": "[variables('intSubnetId')]"
+                            }
+                        }
+                    }, 
+                    {
+                        "name": "[concat(variables('dnsLabel'), '-int-ipconfig-secondary')]", 
+                        "properties": {
+                            "loadBalancerBackendAddressPools": "[if(equals(parameters('AzureInternalLoadBalancerType'), 'DO_NOT_USE'), take(variables('backEndAddressPoolArray'), 0), skip(variables('backEndAddressPoolArray'), 1))]", 
+                            "privateIPAddress": "[variables('intSubnetPrivateAddress5')]", 
+                            "privateIPAllocationMethod": "Static", 
+                            "subnet": {
+                                "id": "[variables('intSubnetId')]"
+                            }
+                        }
+                    }
+                ], 
+                "primary": true
+            }, 
+            "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
+            "type": "Microsoft.Network/networkInterfaces"
+        },
         {
             "apiVersion": "[variables('networkApiVersion')]",
             "location": "[variables('location')]", 
@@ -1708,6 +1975,123 @@
             "condition": "[equals(parameters('AzureAvailabilityOptions'), 'Availability Zone')]",
             "apiVersion": "[variables('computeApiVersion')]", 
             "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', variables('newDataStorageAccountName'))]", 
+                "[variables('newCustomImageName')]", 
+                "[concat('Microsoft.Network/networkInterfaces/', variables('mgmtNicName'), '2')]", 
+                "[concat('Microsoft.Network/networkInterfaces/', variables('extNicName'), '2')]", 
+                "[concat('Microsoft.Network/networkInterfaces/', variables('intNicName'), '2')]"
+            ],
+            "location": "[variables('location')]",      
+            "zones": ["[variables('availabilityZoneNumberForBigIpMember3')]"],
+            "name": "[concat(variables('dnsLabel'), '-', variables('instanceName'),concat('-az',variables('availabilityZoneNumberForBigIpMember3')), '2')]", 
+            "plan": "[if(variables('useCustomImage'), json('null'), variables('imagePlan'))]", 
+            "properties": {
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true, 
+                        "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('newDataStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob]"
+                    }
+                }, 
+                "hardwareProfile": {
+                    "vmSize": "[parameters('instanceType')]"
+                }, 
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces/', concat(variables('mgmtNicName'), '2'))]", 
+                            "properties": {
+                                "primary": true
+                            }
+                        }, 
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces/', concat(variables('extNicName'), '2'))]", 
+                            "properties": {
+                                "primary": false
+                            }
+                        }, 
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces/', concat(variables('intNicName'), '2'))]", 
+                            "properties": {
+                                "primary": false
+                            }
+                        }
+                    ]
+                }, 
+                "osProfile": {
+                    "adminPassword": "[variables('adminPasswordOrKey')]", 
+                    "adminUsername": "[parameters('adminUsername')]", 
+                    "computerName": "[variables('instanceName')]", 
+                    "linuxConfiguration": "[if(equals(parameters('authenticationType'), 'password'), json('null'), variables('linuxConfiguration'))]"
+                }, 
+                "storageProfile": "[if(variables('useCustomImage'), variables('storageProfileArray').customImage, variables('storageProfileArray').platformImage)]"
+            }, 
+            "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
+            "type": "Microsoft.Compute/virtualMachines"
+        },
+        {
+            "condition": "[equals(parameters('AzureAvailabilityOptions'), 'Availability Set')]",
+            "apiVersion": "[variables('computeApiVersion')]", 
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', variables('newDataStorageAccountName'))]", 
+                "[concat('Microsoft.Compute/availabilitySets/', variables('availabilitySetName'))]", 
+                "[variables('newCustomImageName')]", 
+                "[concat('Microsoft.Network/networkInterfaces/', variables('mgmtNicName'), '2')]", 
+                "[concat('Microsoft.Network/networkInterfaces/', variables('extNicName'), '2')]", 
+                "[concat('Microsoft.Network/networkInterfaces/', variables('intNicName'), '2')]"
+            ], 
+            "location": "[variables('location')]", 
+            "name": "[concat(variables('dnsLabel'), '-', variables('instanceName'), '2')]", 
+            "plan": "[if(variables('useCustomImage'), json('null'), variables('imagePlan'))]", 
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
+                }, 
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true, 
+                        "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('newDataStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob]"
+                    }
+                }, 
+                "hardwareProfile": {
+                    "vmSize": "[parameters('instanceType')]"
+                }, 
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces/', concat(variables('mgmtNicName'), '2'))]", 
+                            "properties": {
+                                "primary": true
+                            }
+                        }, 
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces/', concat(variables('extNicName'), '2'))]", 
+                            "properties": {
+                                "primary": false
+                            }
+                        }, 
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces/', concat(variables('intNicName'), '2'))]", 
+                            "properties": {
+                                "primary": false
+                            }
+                        }
+                    ]
+                }, 
+                "osProfile": {
+                    "adminPassword": "[variables('adminPasswordOrKey')]", 
+                    "adminUsername": "[parameters('adminUsername')]", 
+                    "computerName": "[variables('instanceName')]", 
+                    "linuxConfiguration": "[if(equals(parameters('authenticationType'), 'password'), json('null'), variables('linuxConfiguration'))]"
+                }, 
+                "storageProfile": "[if(variables('useCustomImage'), variables('storageProfileArray').customImage, variables('storageProfileArray').platformImage)]"
+            }, 
+            "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
+            "type": "Microsoft.Compute/virtualMachines"
+        },
+        {
+            "condition": "[equals(parameters('AzureAvailabilityOptions'), 'Availability Zone')]",
+            "apiVersion": "[variables('computeApiVersion')]", 
+            "dependsOn": [
                 "[concat('Microsoft.Compute/virtualMachines/', variables('dnsLabel'), '-', variables('instanceName'),concat('-az',variables('availabilityZoneNumberForBigIpMember1')), '0')]"
             ], 
             "location": "[variables('location')]", 
@@ -1715,7 +2099,7 @@
             "properties": {
                 "autoUpgradeMinorVersion": "true", 
                 "protectedSettings": {
-                    "commandToExecute": "[concat(variables('CommandToExecuteArray').COMMON.Header, variables('CommandToExecuteArray')[parameters('consumptionModel')].Node0.Header, if(equals(parameters('consumptionModel'), 'BIGIQ'), reference(concat(variables('mgmtPublicIPAddressId'), '0')).ipAddress, ';'), variables('CommandToExecuteArray')[parameters('consumptionModel')].Node0.Trailer, variables('CommandToExecuteArray').COMMON.Trailer)]"
+                    "commandToExecute": "[concat(variables('CommandToExecuteArray').COMMON.Header, variables('CommandToExecuteArray')[variables('consumptionModel')].Node0.Header, if(equals(variables('consumptionModel'), 'BIGIQ'), reference(concat(variables('mgmtPublicIPAddressId'), '0')).ipAddress, ';'), variables('CommandToExecuteArray')[variables('consumptionModel')].Node0.Trailer, variables('CommandToExecuteArray').COMMON.Trailer)]"
                                     }, 
                 "publisher": "Microsoft.Azure.Extensions", 
                 "settings": {
@@ -1743,7 +2127,7 @@
             "properties": {
                 "autoUpgradeMinorVersion": "true", 
                 "protectedSettings": {
-                    "commandToExecute": "[concat(variables('CommandToExecuteArray').COMMON.Header, variables('CommandToExecuteArray')[parameters('consumptionModel')].Node0.Header, if(equals(parameters('consumptionModel'), 'BIGIQ'), reference(concat(variables('mgmtPublicIPAddressId'), '0')).ipAddress, ';'), variables('CommandToExecuteArray')[parameters('consumptionModel')].Node0.Trailer, variables('CommandToExecuteArray').COMMON.Trailer)]"
+                    "commandToExecute": "[concat(variables('CommandToExecuteArray').COMMON.Header, variables('CommandToExecuteArray')[variables('consumptionModel')].Node0.Header, if(equals(variables('consumptionModel'), 'BIGIQ'), reference(concat(variables('mgmtPublicIPAddressId'), '0')).ipAddress, ';'), variables('CommandToExecuteArray')[variables('consumptionModel')].Node0.Trailer, variables('CommandToExecuteArray').COMMON.Trailer)]"
                 }, 
                 "publisher": "Microsoft.Azure.Extensions", 
                 "settings": {
@@ -1771,7 +2155,7 @@
             "properties": {
                 "autoUpgradeMinorVersion": "true", 
                 "protectedSettings": {
-                    "commandToExecute": "[concat(variables('CommandToExecuteArray').COMMON.Header, variables('CommandToExecuteArray')[parameters('consumptionModel')].Node1.Header, if(equals(parameters('consumptionModel'), 'BIGIQ'), reference(concat(variables('mgmtPublicIPAddressId'), '1')).ipAddress, ' ; '), variables('CommandToExecuteArray')[parameters('consumptionModel')].Node1.Trailer, variables('CommandToExecuteArray').COMMON.Trailer)]"
+                    "commandToExecute": "[concat(variables('CommandToExecuteArray').COMMON.Header, variables('CommandToExecuteArray')[variables('consumptionModel')].Node1.Header, if(equals(variables('consumptionModel'), 'BIGIQ'), reference(concat(variables('mgmtPublicIPAddressId'), '1')).ipAddress, ' ; '), variables('CommandToExecuteArray')[variables('consumptionModel')].Node1.Trailer, variables('CommandToExecuteArray').COMMON.Trailer)]"
                 }, 
                 "publisher": "Microsoft.Azure.Extensions", 
                 "settings": {
@@ -1799,7 +2183,63 @@
             "properties": {
                 "autoUpgradeMinorVersion": "true", 
                 "protectedSettings": {
-                    "commandToExecute": "[concat(variables('CommandToExecuteArray').COMMON.Header, variables('CommandToExecuteArray')[parameters('consumptionModel')].Node1.Header, if(equals(parameters('consumptionModel'), 'BIGIQ'), reference(concat(variables('mgmtPublicIPAddressId'), '1')).ipAddress, ';'), variables('CommandToExecuteArray')[parameters('consumptionModel')].Node1.Trailer, variables('CommandToExecuteArray').COMMON.Trailer)]"
+                    "commandToExecute": "[concat(variables('CommandToExecuteArray').COMMON.Header, variables('CommandToExecuteArray')[variables('consumptionModel')].Node1.Header, if(equals(variables('consumptionModel'), 'BIGIQ'), reference(concat(variables('mgmtPublicIPAddressId'), '1')).ipAddress, ';'), variables('CommandToExecuteArray')[variables('consumptionModel')].Node1.Trailer, variables('CommandToExecuteArray').COMMON.Trailer)]"
+                }, 
+                "publisher": "Microsoft.Azure.Extensions", 
+                "settings": {
+                    "fileUris": [
+                        "[concat('https://cdn.f5.com/product/cloudsolutions/f5-cloud-libs/', variables('f5CloudLibsTag'), '/f5-cloud-libs.tar.gz')]", 
+                        "[concat('https://cdn.f5.com/product/cloudsolutions/f5-appsvcs-extension/', variables('f5AS3Tag'), '/dist/lts/', variables('f5AS3Build'))]", 
+                        "[concat('https://cdn.f5.com/product/cloudsolutions/iapps/common/f5-service-discovery/', variables('f5CloudIappsSdTag'), '/f5.service_discovery.tmpl')]", 
+                        "[concat('https://cdn.f5.com/product/cloudsolutions/iapps/common/f5-cloud-logger/', variables('f5CloudIappsLoggerTag'), '/f5.cloud_logger.v1.0.0.tmpl')]"
+                     ]
+                }, 
+                "type": "CustomScript", 
+                "typeHandlerVersion": "2.0"
+            }, 
+            "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
+            "type": "Microsoft.Compute/virtualMachines/extensions"
+        },
+        {
+            "condition": "[equals(parameters('AzureAvailabilityOptions'), 'Availability Zone')]",
+            "apiVersion": "[variables('computeApiVersion')]", 
+            "dependsOn": [
+                "[concat('Microsoft.Compute/virtualMachines/', variables('dnsLabel'), '-', variables('instanceName'),concat('-az',variables('availabilityZoneNumberForBigIpMember3')), '2')]"
+            ], 
+            "location": "[variables('location')]", 
+            "name": "[concat(variables('dnsLabel'),'-', variables('instanceName'), concat('-az',variables('availabilityZoneNumberForBigIpMember3')),'2/start')]", 
+            "properties": {
+                "autoUpgradeMinorVersion": "true", 
+                "protectedSettings": {
+                    "commandToExecute": "[concat(variables('CommandToExecuteArray').COMMON.Header, variables('CommandToExecuteArray')[variables('consumptionModel')].Node2.Header, if(equals(variables('consumptionModel'), 'BIGIQ'), reference(concat(variables('mgmtPublicIPAddressId'), '2')).ipAddress, ' ; '), variables('CommandToExecuteArray')[variables('consumptionModel')].Node2.Trailer, variables('CommandToExecuteArray').COMMON.Trailer)]"
+                }, 
+                "publisher": "Microsoft.Azure.Extensions", 
+                "settings": {
+                    "fileUris": [
+                        "[concat('https://cdn.f5.com/product/cloudsolutions/f5-cloud-libs/', variables('f5CloudLibsTag'), '/f5-cloud-libs.tar.gz')]", 
+                        "[concat('https://cdn.f5.com/product/cloudsolutions/f5-appsvcs-extension/', variables('f5AS3Tag'), '/dist/lts/', variables('f5AS3Build'))]", 
+                        "[concat('https://cdn.f5.com/product/cloudsolutions/iapps/common/f5-service-discovery/', variables('f5CloudIappsSdTag'), '/f5.service_discovery.tmpl')]", 
+                        "[concat('https://cdn.f5.com/product/cloudsolutions/iapps/common/f5-cloud-logger/', variables('f5CloudIappsLoggerTag'), '/f5.cloud_logger.v1.0.0.tmpl')]"
+                    ]
+                }, 
+                "type": "CustomScript", 
+                "typeHandlerVersion": "2.0"
+            }, 
+            "tags": "[if(empty(variables('tagValues')), json('null'), variables('tagValues'))]", 
+            "type": "Microsoft.Compute/virtualMachines/extensions"
+        },
+        {
+            "condition": "[equals(parameters('AzureAvailabilityOptions'), 'Availability Set')]",
+            "apiVersion": "[variables('computeApiVersion')]", 
+            "dependsOn": [
+                "[concat('Microsoft.Compute/virtualMachines/', variables('dnsLabel'), '-', variables('instanceName'), '2')]"
+            ], 
+            "location": "[variables('location')]", 
+            "name": "[concat(variables('dnsLabel'), '-', variables('instanceName'), '2/start')]", 
+            "properties": {
+                "autoUpgradeMinorVersion": "true", 
+                "protectedSettings": {
+                    "commandToExecute": "[concat(variables('CommandToExecuteArray').COMMON.Header, variables('CommandToExecuteArray')[variables('consumptionModel')].Node2.Header, if(equals(variables('consumptionModel'), 'BIGIQ'), reference(concat(variables('mgmtPublicIPAddressId'), '2')).ipAddress, ';'), variables('CommandToExecuteArray')[variables('consumptionModel')].Node2.Trailer, variables('CommandToExecuteArray').COMMON.Trailer)]"
                 }, 
                 "publisher": "Microsoft.Azure.Extensions", 
                 "settings": {
