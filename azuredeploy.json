@@ -697,7 +697,7 @@
             "Yes": {
                 "first": "[concat('tmsh modify cm device ', concat(variables('instanceName'), '0.', variables('location'), '.cloudapp.azure.com'), ' unicast-address { { ip ', variables('intSubnetPrivateAddress'), ' port 1026 } } mirror-ip ', variables('intSubnetPrivateAddress'))]", 
                 "second": "[concat('tmsh modify cm device ', concat(variables('instanceName'), '1.', variables('location'), '.cloudapp.azure.com'), ' unicast-address { { ip ', variables('intSubnetPrivateAddress1'), ' port 1026 } } mirror-ip ', variables('intSubnetPrivateAddress1'))]",
-                "third": "[concat('tmsh modify cm device ', concat(variables('instanceName'), '2.', variables('location'), '.cloudapp.azure.com'), ' unicast-address { { ip ', variables('intSubnetPrivateAddress1'), ' port 1026 } } mirror-ip ', variables('intSubnetPrivateAddress1'))]"
+                "third": "[concat('tmsh modify cm device ', concat(variables('instanceName'), '2.', variables('location'), '.cloudapp.azure.com'), ' unicast-address { { ip ', variables('intSubnetPrivateAddress2'), ' port 1026 } } mirror-ip ', variables('intSubnetPrivateAddress2'))]"
             }
         }, 
         "externalLoadBalancerName": "[concat(variables('dnsLabel'),'-ext-alb')]", 
